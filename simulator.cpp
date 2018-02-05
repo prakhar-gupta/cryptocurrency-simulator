@@ -3,6 +3,7 @@
 #include <vector>
 #include <algorithm>
 #include "node.cpp"
+#include "distributions.hpp"
 
 using namespace std;
 
@@ -50,11 +51,13 @@ Transaction generateTransaction() {
 }
 
 int main(int argc, char* argv[]) {
-	cout<<"Yo C++"<<endl;
+    srand (time(NULL));
+	cout << "Yo C++" << endl;
+    cout << "exp test" << exponential(0.01) << endl;
 	if(argc > 1) {
 		n = atoi(argv[1]);
 	}
-	cout<<"No. of nodes: "<<n<<endl;
+	cout << "No. of nodes: " << n << endl;
 
 	//Setup connection between nodes
 	isConnected = new bool*[n];
