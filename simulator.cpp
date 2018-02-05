@@ -17,12 +17,36 @@ const int MINING_FEES = 50;		//Mining fees to generate block
 bool** isConnected;	//2D matrix signifying which nodes are connected to each other. indexing from 0 to n-1.
 Node* nodes;		//Array of all nodes
 
-bool isNodeSlow() {
+//Is node i slow
+//TODO
+bool isNodeSlow(int i) {
 	return false;
 }
 
+//Are nodes i and j connected to each other
+//TODO
 bool areNodesConnected(int i, int j) {
 	return true;
+}
+
+//The initial balance that node i has
+//TODO
+float getNodeInitBalance(int i) {
+	return 20;
+}
+
+//Time to next transaction from the exp dist
+//TODO
+float timeForNextTransaction() {
+	return 2.5;
+}
+
+Transaction generateTransaction() {
+	Transaction t;
+	t.from = 0;
+	t.to = 3;
+	t.value = 1.5;
+	return t;
 }
 
 int main(int argc, char* argv[]) {
@@ -47,7 +71,10 @@ int main(int argc, char* argv[]) {
 	//Initialize nodes
 	nodes = new Node[n];
 	for(int i=0;i<n;i++) {
-		nodes[i].isNodeSlow = isNodeSlow();
+		nodes[i].isNodeSlow = isNodeSlow(i);
+		nodes[i].isNodeSlow = getNodeInitBalance(i);
 	}
+
+	nodes[0].receiveNewTransaction(generateTransaction());
 	return 0;
 }
