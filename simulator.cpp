@@ -2,6 +2,7 @@
 #include <cstdio>
 #include <vector>
 #include <algorithm>
+#include "distributions.hpp"
 
 using namespace std;
 
@@ -15,6 +16,8 @@ const int MINING_FEES = 50;		//Mining fees to generate block
 
 
 int main(int argc, char* argv[]) {
+    srand (time(NULL));
 	cout<<"Yo C++"<<endl;
+    cout << exponential(0.01);
 	return 0;
 }
