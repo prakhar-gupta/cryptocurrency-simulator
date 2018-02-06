@@ -42,16 +42,10 @@ struct InterruptCompare
 
 priority_queue <TimeInterrupt, vector<TimeInterrupt>, InterruptCompare> timer;	//Priority queue for all events
 
-//Is node i slow
-//TODO
-bool isNodeSlow(int i) {
-	return false;
-}
-
 //Are nodes i and j connected to each other
 //TODO
 bool areNodesConnected(int i, int j) {
-	return true;
+	return (i == j + 1) || (j == i + 1) || (i-j == n-1) || (j-i == n-1);
 }
 
 //The initial balance that node i has
@@ -154,8 +148,47 @@ void startSimulation() {
 	}
 }
 
-float getSpeedOfLightDelay(int i, int j) {
-	return 5.6;
+void setupConnections() {
+	isConnected = new bool*[n];
+	speedOfLightDelay = new float*[n];
+	for(int i=0;i<=n;i++) {
+		isConnected[i] = new bool[n];
+		speedOfLightDelay[i] = new float[n];
+	}
+	for(int i=0;i<n;i++) {
+		for(int j=i+1;j<n;j++) {
+			isConnected[i][j] = isConnected[j][i] = areNodesConnected(i, j);	//Helper function that uses underlying dist
+			if(isConnected[i][j] == 1) {
+				speedOfLightDelay[i][j] = speedOfLightDelay[j][i] = rhoLatency();
+			}
+		}
+	}
+}
+
+void markSlowNodes() {
+    int count = (int) round(z * n / 100);
+    for (int i=0; i < n; i++) {
+        int val;
+        do {
+            val = iRand(0,n);
+        } while (nodes[val].isNodeSlow);
+        nodes[val].isNodeSlow = true;
+    }
+}
+
+void initNodes() {
+	nodes = new Node[n];
+	for(int i=0;i<n;i++) {
+		nodes[i].isNodeSlow = false;
+		nodes[i].balance = getNodeInitBalance(i);			//Initial money balance of the node
+	}
+    markSlowNodes();
+}
+
+void init() {
+	setupConnections();
+    initNodes();
+	latestTransactionID = 0;			//Init transactionID to 0
 }
 
 int main(int argc, char* argv[]) {
@@ -169,33 +202,7 @@ int main(int argc, char* argv[]) {
 	}
 	cout << "No. of nodes: " << n << endl;
 
-	//Setup connection between nodes
-	isConnected = new bool*[n];
-	speedOfLightDelay = new float*[n];
-	for(int i=0;i<=n;i++) {
-		isConnected[i] = new bool[n];
-		speedOfLightDelay[i] = new float[n];
-	}
-	for(int i=0;i<n;i++) {
-		for(int j=i+1;j<n;j++) {
-			isConnected[i][j] = areNodesConnected(i, j);	//Helper function that uses underlying dist
-			isConnected[j][i] = isConnected[i][j];			//Symmetric matrix
-			if(isConnected[i][j] == 1) {
-				speedOfLightDelay[i][j] = getSpeedOfLightDelay(i, j);
-				speedOfLightDelay[j][i] = speedOfLightDelay[i][j];
-			}
-		}
-	}
-
-	//Initialize nodes
-	nodes = new Node[n];
-	for(int i=0;i<n;i++) {
-		nodes[i].isNodeSlow = isNodeSlow(i);
-		nodes[i].balance = getNodeInitBalance(i);			//Initial money balance of the node
-	}
-
-	latestTransactionID = 0;			//Init transactionID to 0
-
+    init();
 	addFirstInterrupt();				//Add the first interrupt, which is transaction generation
 	startSimulation();					//Start simulation loop
 
