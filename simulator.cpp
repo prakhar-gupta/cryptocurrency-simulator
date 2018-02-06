@@ -11,14 +11,13 @@ using namespace std;
 int n;				//Number of peers
 float z;			//Percent of slow nodes [0-100]
 float tMean;		//Mean time of exp-dist of transaction gen
-float qMean;		//Mean time of exp-dist of queue delay 
-					//for message transmission on a path
 float bMean;		//Mean time of exp-dist of block mine time
 
 const int MINING_FEES = 50;		//Mining fees to generate block
 const int INIT_BALANCE = 40;	//Initial balance of nodes
 
 bool** isConnected;	//2D matrix signifying which nodes are connected to each other. indexing from 0 to n-1.
+float** speedOfLightDelay;
 Node* nodes;		//Array of all nodes
 int latestTransactionID;	//ID of the latest generated transaction
 float currentTime;	//Current simulation time
@@ -64,7 +63,7 @@ float getNodeInitBalance(int i) {
 //Time to next transaction from the exp dist
 //TODO
 float timeForNextTransaction() {
-	return 2.5;
+	return 2.5;				//TODO
 }
 
 //Helper for generateTransaction()
@@ -74,21 +73,37 @@ int getIDForNewTransaction() {
 
 //Helper for generateTransaction()
 int getFromNode() {
-	return 3;
+	return 3;				//TODO
 }
 
 //Helper for generateTransaction()
 int getToNode() {
-	return 5;
+	return 5;				//TODO
 }
 
 //Helper for generateTransaction()
+//TODO
 float getNewTransactionValue(int id) {
-	float value = 5.8;
+	float value = 5.8;				//TODO
 	if(value < nodes[id].balance) {
 		return value;
 	}
 	return nodes[id].balance/2;
+}
+
+//TODO
+float getQueueingDelay(int c, int i, int j) {
+	return 2.3;						//TODO
+}
+
+float getTransmissionDelay(int m, int i, int j) {
+	float p = speedOfLightDelay[i][j];
+	float c = 100.0;
+	if(nodes[i].isNodeSlow || nodes[j].isNodeSlow) {
+		c = 5.0;
+	}
+	float d = getQueueingDelay(c, i, j);
+	return p + m/c + d;
 }
 
 void generateTransaction() {
@@ -106,7 +121,7 @@ void generateTransaction() {
 		if(i == t.from) continue;
 		if(isConnected[t.from][i]) {
 			TimeInterrupt ti;
-			int delay = 3;
+			float delay = getTransmissionDelay(0.0, t.from, i);
 			ti.time = currentTime + delay;
 			ti.type = 2;
 			ti.t = t;
@@ -119,7 +134,7 @@ void generateTransaction() {
 
 void addFirstInterrupt() {
 	TimeInterrupt ti;
-	ti.time = 0;
+	ti.time = 0.0;
 	ti.type = 1;
 	timer.push(ti);
 }
@@ -139,6 +154,10 @@ void startSimulation() {
 	}
 }
 
+float getSpeedOfLightDelay(int i, int j) {
+	return 5.6;
+}
+
 int main(int argc, char* argv[]) {
     srand (time(NULL));
 	cout << "Yo C++" << endl;
@@ -152,13 +171,19 @@ int main(int argc, char* argv[]) {
 
 	//Setup connection between nodes
 	isConnected = new bool*[n];
+	speedOfLightDelay = new float*[n];
 	for(int i=0;i<=n;i++) {
 		isConnected[i] = new bool[n];
+		speedOfLightDelay[i] = new float[n];
 	}
 	for(int i=0;i<n;i++) {
 		for(int j=i+1;j<n;j++) {
 			isConnected[i][j] = areNodesConnected(i, j);	//Helper function that uses underlying dist
 			isConnected[j][i] = isConnected[i][j];			//Symmetric matrix
+			if(isConnected[i][j] == 1) {
+				speedOfLightDelay[i][j] = getSpeedOfLightDelay(i, j);
+				speedOfLightDelay[j][i] = speedOfLightDelay[i][j];
+			}
 		}
 	}
 

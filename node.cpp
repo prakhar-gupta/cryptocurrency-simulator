@@ -27,7 +27,7 @@ public:
 
 	void generateNewTransaction(Transaction t) {
 		this->balance -= t.value;
-		cout<<id<<": New balance is "<<balance<<endl;
+		cout<<"node "<<id<<": New balance is "<<balance<<endl;
 		unspentTransactions.push_back(t);
 	}
 
