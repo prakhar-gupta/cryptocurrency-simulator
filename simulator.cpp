@@ -54,89 +54,6 @@ float getNodeInitBalance(int i) {
 	return INIT_BALANCE;
 }
 
-//Time to next transaction from the exp dist
-float timeForNextTransaction() {
-    return exponential(tMean);
-}
-
-//Helper for generateTransaction()
-int getIDForNewTransaction() {
-	return ++latestTransactionID;
-}
-
-//Helper for generateTransaction()
-int getFromNode() {
-	return 3;				//TODO
-}
-
-//Helper for generateTransaction()
-int getToNode() {
-	return 5;				//TODO
-}
-
-//Helper for generateTransaction()
-float getNewTransactionValue(int id) {
-	return fRand(0, nodes[id].balance);
-}
-
-float getTransmissionDelay(int m, int i, int j) {
-	float p = speedOfLightDelay[i][j];
-	float c = 100.0;
-	if(nodes[i].isNodeSlow || nodes[j].isNodeSlow) {
-		c = 5.0;
-	}
-	float d = dLatency(c);
-	return p + m/c + d;
-}
-
-void generateTransaction() {
-	Transaction t;
-	t.id = getIDForNewTransaction();
-	t.from = getFromNode();
-	t.to = getToNode();
-	t.value = getNewTransactionValue(t.from);
-
-	cout<<"Generating txn from "<<t.from<<" to "<<t.to<<" for "<<t.value<<endl;
-	nodes[t.from].generateNewTransaction(t);
-
-	//Generate TimerInterrupt for message transfer
-	for(int i=0;i<n;i++) {
-		if(i == t.from) continue;
-		if(isConnected[t.from][i]) {
-			TimeInterrupt ti;
-			float delay = getTransmissionDelay(0.0, t.from, i);
-			ti.time = currentTime + delay;
-			ti.type = 2;
-			ti.t = t;
-			ti.from = t.from;
-			ti.to = i;
-			timer.push(ti);
-		}
-	}
-}
-
-void addFirstInterrupt() {
-	TimeInterrupt ti;
-	ti.time = 0.0;
-	ti.type = 1;
-	timer.push(ti);
-}
-
-void startSimulation() {
-	while(!timer.empty()) {
-		TimeInterrupt ti = timer.top();
-		currentTime = ti.time;
-		if(ti.type == 1) {
-			cout<<"sim "<<currentTime<<": Generate new transaction"<<endl;
-			timer.pop();
-			generateTransaction();
-		} else if(ti.type == 2) {
-			cout<<"sim "<<currentTime<<": Transaction transfer from "<<ti.from<<" to "<<ti.to<<endl;
-			timer.pop();
-		}
-	}
-}
-
 void setupConnections() {
 	isConnected = new bool*[n];
 	speedOfLightDelay = new float*[n];
@@ -168,6 +85,7 @@ void markSlowNodes() {
 void initNodes() {
 	nodes = new Node[n];
 	for(int i=0;i<n;i++) {
+        nodes[i].id = i;
 		nodes[i].isNodeSlow = false;
 		nodes[i].balance = getNodeInitBalance(i);			//Initial money balance of the node
 	}
@@ -180,6 +98,76 @@ void init() {
 	latestTransactionID = 0;			//Init transactionID to 0
 }
 
+
+float getTransmissionDelay(int m, int i, int j) {
+	float p = speedOfLightDelay[i][j];
+	float c = 100.0;
+	if(nodes[i].isNodeSlow || nodes[j].isNodeSlow) {
+		c = 5.0;
+	}
+	float d = dLatency(c);
+	return p + m/c + d;
+}
+
+void generateTransaction(int from) {
+	Transaction t;
+	t.id = ++latestTransactionID;
+	t.from = from;
+    do {
+	    t.to = iRand(0,n);
+    } while (t.to == from);
+	t.value = fRand(0, nodes[from].balance);
+
+	cout<<"Generating txn from "<<t.from<<" to "<<t.to<<" for "<<t.value<<endl;
+	nodes[t.from].generateNewTransaction(t);
+
+	//Generate TimerInterrupt for message transfer
+	for(int i=0;i<n;i++) {
+		if(i == t.from) continue;
+		if(isConnected[t.from][i]) {
+			TimeInterrupt ti;
+			float delay = getTransmissionDelay(0.0, t.from, i);
+			ti.time = currentTime + delay;
+			ti.type = 2;
+			ti.t = t;
+			ti.from = t.from;
+			ti.to = i;
+			timer.push(ti);
+		}
+	}
+}
+
+void reinitGenerate(int id, int currTime) {
+    	TimeInterrupt ti;
+	    ti.time = currTime + exponential(tMean);
+    	ti.type = 1;
+        ti.from = id;
+	    timer.push(ti);
+}
+
+void initInterrupt() {
+    for (int i = 0; i < n; i++) {
+        reinitGenerate(i, 0);
+    }
+}
+
+void startSimulation() {
+	while(!timer.empty()) {
+		TimeInterrupt ti = timer.top();
+		currentTime = ti.time;
+		if(ti.type == 1) {
+			cout<<"sim "<<currentTime<<": Generate new transaction"<<endl;
+			timer.pop();
+			generateTransaction(ti.from);
+            // uncomment for continous generation
+            // reinitGenerate(ti.from, currentTime); 
+		} else if(ti.type == 2) {
+			cout<<"sim "<<currentTime<<": Transaction transfer from "<<ti.from<<" to "<<ti.to<<endl;
+			timer.pop();
+		}
+	}
+}
+
 int main(int argc, char* argv[]) {
     srand (time(NULL));
 	cout << "Yo C++" << endl;
@@ -187,12 +175,13 @@ int main(int argc, char* argv[]) {
 	if(argc > 1) {
 		n = atoi(argv[1]);
 	} else {
-		n = 50;
+		n = 5;
+        tMean = 0.1;
 	}
 	cout << "No. of nodes: " << n << endl;
 
     init();
-	addFirstInterrupt();				//Add the first interrupt, which is transaction generation
+	initInterrupt();				//Add the first interrupt, which is transaction generation
 	startSimulation();					//Start simulation loop
 
 	//nodes[0].receiveNewTransaction(generateTransaction());
