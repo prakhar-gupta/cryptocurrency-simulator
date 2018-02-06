@@ -55,9 +55,8 @@ float getNodeInitBalance(int i) {
 }
 
 //Time to next transaction from the exp dist
-//TODO
 float timeForNextTransaction() {
-	return 2.5;				//TODO
+    return exponential(tMean);
 }
 
 //Helper for generateTransaction()
@@ -76,18 +75,8 @@ int getToNode() {
 }
 
 //Helper for generateTransaction()
-//TODO
 float getNewTransactionValue(int id) {
-	float value = 5.8;				//TODO
-	if(value < nodes[id].balance) {
-		return value;
-	}
-	return nodes[id].balance/2;
-}
-
-//TODO
-float getQueueingDelay(int c, int i, int j) {
-	return 2.3;						//TODO
+	return fRand(0, nodes[id].balance);
 }
 
 float getTransmissionDelay(int m, int i, int j) {
@@ -96,7 +85,7 @@ float getTransmissionDelay(int m, int i, int j) {
 	if(nodes[i].isNodeSlow || nodes[j].isNodeSlow) {
 		c = 5.0;
 	}
-	float d = getQueueingDelay(c, i, j);
+	float d = dLatency(c);
 	return p + m/c + d;
 }
 
