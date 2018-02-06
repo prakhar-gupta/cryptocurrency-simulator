@@ -6,6 +6,7 @@
 using namespace std;
 
 struct Transaction {
+	int id;
 	int from;
 	int to;
 	float value;
@@ -22,6 +23,12 @@ public:
 	//TODO
 	bool validateTransaction(Transaction t) {
 		return true;
+	}
+
+	void generateNewTransaction(Transaction t) {
+		this->balance -= t.value;
+		cout<<id<<": New balance is "<<balance<<endl;
+		unspentTransactions.push_back(t);
 	}
 
 	bool receiveNewTransaction(Transaction t) {
