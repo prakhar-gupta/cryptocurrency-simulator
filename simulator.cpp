@@ -28,7 +28,7 @@ struct TimeInterrupt {
 					//2 -> Transfer transaction/block message
 					//3 -> generate block
 	int from, to;	//Sender and receipient in case of message passing
-	Transaction t;
+	Transaction *t;
 	int blockGeneratorNodeID;
 };
 
@@ -36,7 +36,7 @@ struct InterruptCompare
 {
     bool operator()(const TimeInterrupt& lhs, const TimeInterrupt& rhs)
     {
-        return lhs.time < rhs.time;
+        return lhs.time > rhs.time;
     }
 };
 
@@ -98,7 +98,6 @@ void init() {
 	latestTransactionID = 0;			//Init transactionID to 0
 }
 
-
 float getTransmissionDelay(int m, int i, int j) {
 	float p = speedOfLightDelay[i][j];
 	float c = 100.0;
@@ -109,32 +108,39 @@ float getTransmissionDelay(int m, int i, int j) {
 	return p + m/c + d;
 }
 
-void generateTransaction(int from) {
-	Transaction t;
-	t.id = ++latestTransactionID;
-	t.from = from;
-    do {
-	    t.to = iRand(0,n);
-    } while (t.to == from);
-	t.value = fRand(0, nodes[from].balance);
-
-	cout<<"Generating txn from "<<t.from<<" to "<<t.to<<" for "<<t.value<<endl;
-	nodes[t.from].generateNewTransaction(t);
-
-	//Generate TimerInterrupt for message transfer
+void forwardTransaction(int id, int recvdFrom, Transaction *t) {
+    if (nodes[id].hasSeen(t->id))
+        return;
 	for(int i=0;i<n;i++) {
-		if(i == t.from) continue;
-		if(isConnected[t.from][i]) {
+		if(i == recvdFrom || i == id)
+            continue;
+		if(isConnected[id][i]) {
 			TimeInterrupt ti;
-			float delay = getTransmissionDelay(0.0, t.from, i);
+			float delay = getTransmissionDelay(0.0, id, i);
 			ti.time = currentTime + delay;
 			ti.type = 2;
 			ti.t = t;
-			ti.from = t.from;
+			ti.from = id;
 			ti.to = i;
 			timer.push(ti);
 		}
 	}
+}
+
+void generateTransaction(int from) {
+	Transaction *t = (Transaction *) malloc(sizeof(Transaction));
+	t->id = ++latestTransactionID;
+	t->from = from;
+    do {
+	    t->to = iRand(0,n);
+    } while (t->to == from);
+	t->value = fRand(0, nodes[from].balance);
+
+	cout<<"Generating txn"<< t->id << " from "<<t->from<<" to "<<t->to<<" for "<<t->value<<endl;
+	nodes[t->from].generateNewTransaction(t);
+
+	//Generate TimerInterrupt for message transfer
+    forwardTransaction(from, -1, t);
 }
 
 void reinitGenerate(int id, int currTime) {
@@ -142,6 +148,7 @@ void reinitGenerate(int id, int currTime) {
 	    ti.time = currTime + exponential(tMean);
     	ti.type = 1;
         ti.from = id;
+        cout << ti.time << " " << id << " " << ti.from << endl;
 	    timer.push(ti);
 }
 
@@ -152,18 +159,29 @@ void initInterrupt() {
 }
 
 void startSimulation() {
+	initInterrupt();				//Add the first interrupt, which is transaction generation
 	while(!timer.empty()) {
-		TimeInterrupt ti = timer.top();
-		currentTime = ti.time;
-		if(ti.type == 1) {
-			cout<<"sim "<<currentTime<<": Generate new transaction"<<endl;
-			timer.pop();
-			generateTransaction(ti.from);
-            // uncomment for continous generation
-            // reinitGenerate(ti.from, currentTime); 
-		} else if(ti.type == 2) {
-			cout<<"sim "<<currentTime<<": Transaction transfer from "<<ti.from<<" to "<<ti.to<<endl;
-			timer.pop();
+		const TimeInterrupt *ti = &(timer.top());
+		currentTime = ti->time;
+        int from, to;
+        Transaction *t;
+        switch(ti->type) {
+		    case 1:
+                from = ti->from;
+    			cout<<"sim "<<currentTime<<": Generate new transaction"<< " " << from << endl;
+	    		timer.pop();
+		    	generateTransaction(from);
+                // uncomment for continous generation
+                // reinitGenerate(from, currentTime); 
+                break;
+            case 2:
+                from = ti->from;
+                to = ti->to;
+                t = ti->t;
+			    cout<<"sim "<<currentTime<<": Transaction" << t->id << "  transfer from "<<from<<" to "<<to<<endl;
+    			timer.pop();
+                forwardTransaction(to, from, t);
+                break;
 		}
 	}
 }
@@ -172,16 +190,15 @@ int main(int argc, char* argv[]) {
     srand (time(NULL));
 	cout << "Yo C++" << endl;
     cout << "exp test" << exponential(0.01) << endl;
+    tMean = 0.1;
 	if(argc > 1) {
 		n = atoi(argv[1]);
 	} else {
 		n = 5;
-        tMean = 0.1;
 	}
 	cout << "No. of nodes: " << n << endl;
 
     init();
-	initInterrupt();				//Add the first interrupt, which is transaction generation
 	startSimulation();					//Start simulation loop
 
 	//nodes[0].receiveNewTransaction(generateTransaction());
