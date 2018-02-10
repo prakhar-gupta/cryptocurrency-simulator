@@ -25,6 +25,9 @@ int latestTransactionID;        //ID of the latest generated transaction
 int lastBlkId;
 float currentTime;              //Current simulation time
 
+Block *genesisBlk;
+
+
 struct TimeInterrupt {
     float time;
     int type;           //1 -> Generate transaction
@@ -32,7 +35,7 @@ struct TimeInterrupt {
                         //3 -> recv / generate block
     int from, to;       //Sender and receipient in case of message passing
     Transaction *t;
-    int blockGeneratorNodeID;
+    Block *block;
 };
 
 struct InterruptCompare
@@ -59,7 +62,7 @@ float getNodeInitBalance(int i) {
 
 // TODO
 float getMeanGenerationTime(int i) {
-    return 1000;
+    return 0.05;
 }
 
 void setupConnections() {
@@ -96,7 +99,6 @@ void initNodes() {
     for(int i=0;i<n;i++) {
         nodes[i].id = i;
         nodes[i].isNodeSlow = false;
-        nodes[i].balance = getNodeInitBalance(i);           //Initial money balance of the node
         nodes[i].blkGenerateMeanTime = getMeanGenerationTime(i);
     }
     markSlowNodes();
@@ -113,11 +115,13 @@ void timerBlkGenerate(int i) {
 
 void createGenesis() {
     lastBlkId = 0;
-    Block *genesisBlk = (Block *)malloc(sizeof(Block));
+    // Block *genesisBlk = (Block *)malloc(sizeof(Block));
+    genesisBlk = new Block();
     genesisBlk->id = lastBlkId ++;
     for (int i=0;i<n;i++) {
         genesisBlk->balances.push_back(getNodeInitBalance(i));
         timerBlkGenerate(i);
+        nodes[i].longestChainLeaf = genesisBlk;
     }
     genesisBlk->generationTime = 0;
     genesisBlk->prevBlk = NULL;
@@ -142,7 +146,7 @@ float getTransmissionDelay(int m, int i, int j) {
 }
 
 void forwardTransaction(int id, int recvdFrom, Transaction *t) {
-    if (nodes[id].hasSeenTransaction(t->id))
+    if (nodes[id].hasSeenTransaction(t))
         return;
     for(int i=0;i<n;i++) {
         if(i == recvdFrom || i == id)
@@ -168,9 +172,9 @@ void forwardBlock(int id, int recvdFrom, Block *blk) {
             continue;
         if(isConnected[id][i]) {
             TimeInterrupt ti;
-            ti.time = currentTime + getTransmissionDelay(0, id, i);
-            ti.type = 2;
-            // /ti.t = t;
+            ti.time = currentTime + getTransmissionDelay(1000, id, i);
+            ti.type = 3;
+            ti.block = blk;
             ti.from = id;
             ti.to = i;
             timer.push(ti);
@@ -178,29 +182,38 @@ void forwardBlock(int id, int recvdFrom, Block *blk) {
     }
 }
 
-void newBlockHandle(int to, int from) {
-    Block *tmpBlock;
+void newBlockHandle(int to, int from, Block *blk) {
+    timerBlkGenerate(to);
+    Block *tmpBlock = blk;
     if (from == -1) {
         // create new block
         tmpBlock = new Block();
         tmpBlock->id = lastBlkId ++;
-        // ...
+        tmpBlock->generationTime = currentTime;
+        nodes[to].updateBlock(tmpBlock);
+        if (tmpBlock->id == -1) {
+            lastBlkId --;
+            cout << "No Transactions to add; Not creating block" << endl;
+            return;
+        }
+        cout << "Block Creation Successful" << endl;
     }
-    tmpBlock = ??; // TODO: either create global storage of all blocks
+    if (nodes[to].longestChainLeaf->len < tmpBlock->len)
+        nodes[to].longestChainLeaf = tmpBlock;
     forwardBlock(to, from, tmpBlock);
 }
 
 void generateTransaction(int from) {
-    Transaction *t = (Transaction *) malloc(sizeof(Transaction));
+    // Transaction *t = (Transaction *) malloc(sizeof(Transaction));
+    Transaction *t = new Transaction();
     t->id = ++latestTransactionID;
     t->from = from;
     do {
         t->to = iRand(0,n);
     } while (t->to == from);
-    t->value = fRand(0, nodes[from].balance);
+    t->value = fRand(0, nodes[from].longestChainLeaf->balances[from]);
 
-    cout<<"Generating txn"<< t->id << " from "<<t->from<<" to "<<t->to<<" for "<<t->value<<endl;
-    nodes[t->from].generateNewTransaction(t);
+    cout<<"Generating txn"<< t->id << " from "<<t->from<<" to "<<t->to<<" for "<<t->value<< " " << nodes[from].longestChainLeaf->balances[from] << endl;
 
     //Generate TimerInterrupt for message transfer
     forwardTransaction(from, -1, t);
@@ -211,7 +224,6 @@ void reinitGenerate(int id, int currTime) {
         ti.time = currTime + exponential(tMean);
         ti.type = 1;
         ti.from = id;
-        cout << ti.time << " " << id << " " << ti.from << endl;
         timer.push(ti);
 }
 
@@ -228,6 +240,7 @@ void startSimulation() {
         currentTime = ti->time;
         int from, to;
         Transaction *t;
+        Block *blk;
         switch(ti->type) {
             case 1:
                 from = ti->from;
@@ -235,7 +248,7 @@ void startSimulation() {
                 timer.pop();
                 generateTransaction(from);
                 // TODO: uncomment for continous generation
-                // reinitGenerate(from, currentTime); 
+                 reinitGenerate(from, currentTime); 
                 break;
             case 2:
                 from = ti->from;
@@ -248,8 +261,13 @@ void startSimulation() {
             case 3:
                 from = ti->from;
                 to = ti->to;
+                blk = ti->block;
+                if (from == -1)
+                    cout<<"sim "<<currentTime<<": Block create at "<<to<<endl;
+                else
+                    cout<<"sim "<<currentTime<<": Block" << blk->id << "  transfer from "<<from<<" to "<<to<<endl;
                 timer.pop();
-                newBlockHandle(to, from);
+                newBlockHandle(to, from, blk);
                 break;
         }
     }
@@ -257,8 +275,6 @@ void startSimulation() {
 
 int main(int argc, char* argv[]) {
     srand (time(NULL));
-    cout << "Yo C++" << endl;
-    cout << "exp test" << exponential(0.01) << endl;
     tMean = 0.1;
     if(argc > 1) {
         n = atoi(argv[1]);

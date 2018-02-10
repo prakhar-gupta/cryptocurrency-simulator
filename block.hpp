@@ -4,11 +4,13 @@
 using namespace std;
 
 struct Block {
+public:
     int id;
-    list<Transaction> transList;
+    list<Transaction *> transList;
     Block *prevBlk;
     int generationTime;
-    vector<int> balances;
+    vector<float> balances;
     set<int> transactions;
     int len;
+    list<Block *> child;
 };
