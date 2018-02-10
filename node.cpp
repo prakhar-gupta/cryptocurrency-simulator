@@ -1,37 +1,33 @@
-#include <iostream>
-#include <cstdio>
-#include <vector>
-#include <set>
 #include <algorithm>
+#include <cstdio>
+#include <iostream>
+#include <list>
+#include <set>
+#include <vector>
 
 using namespace std;
-
-struct Transaction {
-    int id;
-    int from;
-    int to;
-    float value;
-};
 
 class Node {
 public:
     int id;
     bool isNodeSlow;
-    float balance;
-    vector<Transaction *> unspentTransactions;
+    float blkGenerateMeanTime;
+    list<Transaction *> unspentTransactions;
     set<int> seenTransactions;
+    set<int> seenBlocks;
+    Block *longestChainLeaf;
 
     //Check in own longest block chain if transaction is valid
     //TODO
     bool validateTransaction(Transaction *t) {
-        return true;
+        return longestChainLeaf->balances[t->from] >= t->value;
     }
 
-    void generateNewTransaction(Transaction *t) {
-        this->balance -= t->value;
-        cout<<"node "<<id<<": New balance is "<<balance<<endl;
-        unspentTransactions.push_back(t);
-    }
+//    void generateNewTransaction(Transaction *t) {
+//        this->balance -= t->value;
+//        cout<<"node "<<id<<": New balance is "<<balance<<endl;
+//        unspentTransactions.push_back(t);
+//    }
 
     bool receiveNewTransaction(Transaction *t) {
         if(validateTransaction(t)) {
@@ -41,10 +37,49 @@ public:
         return false;
     }
 
-    bool hasSeen(int tid) {
+    bool hasSeenTransaction(Transaction *t) {
+        int tid = t->id;
         if (seenTransactions.find(tid) != seenTransactions.end())
             return true;
         seenTransactions.insert(tid);
+        receiveNewTransaction(t);
         return false;
+    }
+
+    bool hasSeenBlock(int bid) {
+        if (seenBlocks.find(bid) != seenBlocks.end())
+            return true;
+        seenBlocks.insert(bid);
+        return false;
+    }
+
+    void updateBlock(Block *tmpBlk) {
+        tmpBlk->prevBlk = longestChainLeaf;
+        tmpBlk->transactions = longestChainLeaf->transactions;
+        tmpBlk->balances = longestChainLeaf->balances;
+        while (!unspentTransactions.empty()) {
+            Transaction *tmpTrans = unspentTransactions.front();
+            if (tmpBlk->balances[tmpTrans->from] >= tmpTrans->value && tmpBlk->transactions.find(tmpTrans->id) == tmpBlk->transactions.end()) {
+                tmpBlk->transList.push_back(tmpTrans);
+                tmpBlk->balances[tmpTrans->from] -= tmpTrans->value;
+                tmpBlk->balances[tmpTrans->to] += tmpTrans->value;
+                tmpBlk->transactions.insert(tmpTrans->id);
+                cout << "#" << tmpTrans->id;
+            }
+            unspentTransactions.pop_front();
+        }
+        if (tmpBlk->transList.size() == 0) {
+            tmpBlk->id = -1;
+            return;
+        }
+        tmpBlk->balances[id] += 50;
+        tmpBlk->len = longestChainLeaf->len + 1;
+
+        longestChainLeaf = tmpBlk;
+        longestChainLeaf.child.push_back(tmpBlk);
+        for (int i=0;i<5;i++) {
+            cout << "_" << tmpBlk->balances[i];
+        }
+        cout << endl;
     }
 };
