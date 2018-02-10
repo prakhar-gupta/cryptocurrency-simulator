@@ -6,20 +6,15 @@
 
 using namespace std;
 
-struct Transaction {
-    int id;
-    int from;
-    int to;
-    float value;
-};
-
 class Node {
 public:
     int id;
     bool isNodeSlow;
     float balance;
+    float blkGenerateMeanTime;
     vector<Transaction *> unspentTransactions;
     set<int> seenTransactions;
+    set<int> seenBlocks;
 
     //Check in own longest block chain if transaction is valid
     //TODO
@@ -41,10 +36,17 @@ public:
         return false;
     }
 
-    bool hasSeen(int tid) {
+    bool hasSeenTransaction(int tid) {
         if (seenTransactions.find(tid) != seenTransactions.end())
             return true;
         seenTransactions.insert(tid);
+        return false;
+    }
+
+    bool hasSeenBlock(int bid) {
+        if (seenBlocks.find(bid) != seenBlocks.end())
+            return true;
+        seenBlocks.insert(bid);
         return false;
     }
 };

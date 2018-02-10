@@ -1,10 +1,12 @@
-#include <iostream>
-#include <cstdio>
-#include <vector>
 #include <algorithm>
+#include <cstdio>
+#include <iostream>
 #include <queue>
-#include "node.cpp"
+#include <vector>
+#include "transaction.hpp"
+#include "block.hpp"
 #include "distributions.hpp"
+#include "node.cpp"
 
 using namespace std;
 
@@ -20,13 +22,14 @@ bool** isConnected;             //2D matrix signifying which nodes are connected
 float** speedOfLightDelay;
 Node* nodes;                    //Array of all nodes
 int latestTransactionID;        //ID of the latest generated transaction
+int lastBlkId;
 float currentTime;              //Current simulation time
 
 struct TimeInterrupt {
     float time;
     int type;           //1 -> Generate transaction
                         //2 -> Transfer transaction/block message
-                        //3 -> generate block
+                        //3 -> recv / generate block
     int from, to;       //Sender and receipient in case of message passing
     Transaction *t;
     int blockGeneratorNodeID;
@@ -52,6 +55,11 @@ bool areNodesConnected(int i, int j) {
 //TODO
 float getNodeInitBalance(int i) {
     return INIT_BALANCE;
+}
+
+// TODO
+float getMeanGenerationTime(int i) {
+    return 1000;
 }
 
 void setupConnections() {
@@ -84,18 +92,43 @@ void markSlowNodes() {
 
 void initNodes() {
     nodes = new Node[n];
+    // nodes = (Node *)malloc(n * sizeof(Node));
     for(int i=0;i<n;i++) {
         nodes[i].id = i;
         nodes[i].isNodeSlow = false;
         nodes[i].balance = getNodeInitBalance(i);           //Initial money balance of the node
+        nodes[i].blkGenerateMeanTime = getMeanGenerationTime(i);
     }
     markSlowNodes();
+}
+
+void timerBlkGenerate(int i) {
+    TimeInterrupt ti;
+    ti.time = currentTime + exponential(nodes[i].blkGenerateMeanTime);
+    ti.type = 3;
+    ti.to = i;
+    ti.from = -1;
+    timer.push(ti);
+}
+
+void createGenesis() {
+    lastBlkId = 0;
+    Block *genesisBlk = (Block *)malloc(sizeof(Block));
+    genesisBlk->id = lastBlkId ++;
+    for (int i=0;i<n;i++) {
+        genesisBlk->balances.push_back(getNodeInitBalance(i));
+        timerBlkGenerate(i);
+    }
+    genesisBlk->generationTime = 0;
+    genesisBlk->prevBlk = NULL;
+    genesisBlk->len = 1;
 }
 
 void init() {
     setupConnections();
     initNodes();
     latestTransactionID = 0;            //Init transactionID to 0
+    createGenesis();
 }
 
 float getTransmissionDelay(int m, int i, int j) {
@@ -109,14 +142,14 @@ float getTransmissionDelay(int m, int i, int j) {
 }
 
 void forwardTransaction(int id, int recvdFrom, Transaction *t) {
-    if (nodes[id].hasSeen(t->id))
+    if (nodes[id].hasSeenTransaction(t->id))
         return;
     for(int i=0;i<n;i++) {
         if(i == recvdFrom || i == id)
             continue;
         if(isConnected[id][i]) {
             TimeInterrupt ti;
-            float delay = getTransmissionDelay(0.0, id, i);
+            float delay = getTransmissionDelay(0, id, i);
             ti.time = currentTime + delay;
             ti.type = 2;
             ti.t = t;
@@ -125,6 +158,36 @@ void forwardTransaction(int id, int recvdFrom, Transaction *t) {
             timer.push(ti);
         }
     }
+}
+
+void forwardBlock(int id, int recvdFrom, Block *blk) {
+    if (nodes[id].hasSeenBlock(blk->id))
+        return;
+    for(int i=0;i<n;i++) {
+        if(i == recvdFrom || i == id)
+            continue;
+        if(isConnected[id][i]) {
+            TimeInterrupt ti;
+            ti.time = currentTime + getTransmissionDelay(0, id, i);
+            ti.type = 2;
+            // /ti.t = t;
+            ti.from = id;
+            ti.to = i;
+            timer.push(ti);
+        }
+    }
+}
+
+void newBlockHandle(int to, int from) {
+    Block *tmpBlock;
+    if (from == -1) {
+        // create new block
+        tmpBlock = new Block();
+        tmpBlock->id = lastBlkId ++;
+        // ...
+    }
+    tmpBlock = ??; // TODO: either create global storage of all blocks
+    forwardBlock(to, from, tmpBlock);
 }
 
 void generateTransaction(int from) {
@@ -181,6 +244,12 @@ void startSimulation() {
                 cout<<"sim "<<currentTime<<": Transaction" << t->id << "  transfer from "<<from<<" to "<<to<<endl;
                 timer.pop();
                 forwardTransaction(to, from, t);
+                break;
+            case 3:
+                from = ti->from;
+                to = ti->to;
+                timer.pop();
+                newBlockHandle(to, from);
                 break;
         }
     }
