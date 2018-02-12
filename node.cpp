@@ -47,6 +47,10 @@ public:
         return false;
     }
 
+    bool hasSeenBlockNotSee(int bid) {
+        return seenBlocks.find(bid) != seenBlocks.end();
+    }
+
     bool hasSeenBlock(int bid, float currTime) {
         if (seenBlocks.find(bid) != seenBlocks.end())
             return true;

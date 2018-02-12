@@ -1,6 +1,7 @@
 #include <algorithm>
 #include <cstdio>
 #include <iostream>
+#include <list>
 #include <queue>
 #include <vector>
 #include "transaction.hpp"
@@ -62,7 +63,7 @@ float getNodeInitBalance(int i) {
 
 // TODO
 float getMeanGenerationTime(int i) {
-    return 0.05;
+    return bMean;
 }
 
 void setupConnections() {
@@ -198,9 +199,18 @@ void newBlockHandle(int to, int from, Block *blk) {
         }
         cout << "Block Creation Successful" << endl;
     }
-    if (nodes[to].longestChainLeaf->len < tmpBlock->len)
-        nodes[to].longestChainLeaf = tmpBlock;
-    forwardBlock(to, from, tmpBlock);
+    if (nodes[to].hasSeenBlockNotSee(nodes[to].longestChainLeaf->prevBlk->id)) {
+        if (nodes[to].longestChainLeaf->len < tmpBlock->len)
+            nodes[to].longestChainLeaf = tmpBlock;
+        list<Block *>::iterator it = nodes[to].longestChainLeaf->child.begin();
+        while (it != nodes[to].longestChainLeaf->child.end()) {
+            if (nodes[to].longestChainLeaf->len < (*it)->len)
+                nodes[to].longestChainLeaf = *it;
+            it ++;
+        }
+    }
+    else
+        forwardBlock(to, from, tmpBlock);
 }
 
 void generateTransaction(int from) {
@@ -220,11 +230,11 @@ void generateTransaction(int from) {
 }
 
 void reinitGenerate(int id, int currTime) {
-        TimeInterrupt ti;
-        ti.time = currTime + exponential(tMean);
-        ti.type = 1;
-        ti.from = id;
-        timer.push(ti);
+    TimeInterrupt ti;
+    ti.time = currTime + exponential(tMean);
+    ti.type = 1;
+    ti.from = id;
+    timer.push(ti);
 }
 
 void initInterrupt() {
@@ -275,17 +285,18 @@ void startSimulation() {
 
 int main(int argc, char* argv[]) {
     srand (time(NULL));
+    n = 5;
     tMean = 0.1;
-    if(argc > 1) {
+    bMean = 0.005;
+    if(argc > 1)
         n = atoi(argv[1]);
-    } else {
-        n = 5;
-    }
+    if(argc > 2)
+        tMean = atof(argv[2]);
+    if(argc > 3)
+        bMean = atof(argv[3]);
     cout << "No. of nodes: " << n << endl;
 
     init();
     startSimulation();              //Start simulation loop
-
-    //nodes[0].receiveNewTransaction(generateTransaction());
     return 0;
 }
