@@ -2,6 +2,7 @@
 #include <cstdio>
 #include <iostream>
 #include <list>
+#include <map>
 #include <set>
 #include <vector>
 
@@ -14,7 +15,7 @@ public:
     float blkGenerateMeanTime;
     list<Transaction *> unspentTransactions;
     set<int> seenTransactions;
-    set<int> seenBlocks;
+    map<int,float> seenBlocks;
     Block *longestChainLeaf;
 
     //Check in own longest block chain if transaction is valid
@@ -46,10 +47,10 @@ public:
         return false;
     }
 
-    bool hasSeenBlock(int bid) {
+    bool hasSeenBlock(int bid, float currTime) {
         if (seenBlocks.find(bid) != seenBlocks.end())
             return true;
-        seenBlocks.insert(bid);
+        seenBlocks[bid] = currTime;
         return false;
     }
 
@@ -76,7 +77,7 @@ public:
         tmpBlk->len = longestChainLeaf->len + 1;
 
         longestChainLeaf = tmpBlk;
-        longestChainLeaf.child.push_back(tmpBlk);
+        longestChainLeaf->child.push_back(tmpBlk);
         for (int i=0;i<5;i++) {
             cout << "_" << tmpBlk->balances[i];
         }
