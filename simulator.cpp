@@ -165,7 +165,7 @@ void forwardTransaction(int id, int recvdFrom, Transaction *t) {
 }
 
 void forwardBlock(int id, int recvdFrom, Block *blk) {
-    if (nodes[id].hasSeenBlock(blk->id))
+    if (nodes[id].hasSeenBlock(blk->id, currentTime))
         return;
     for(int i=0;i<n;i++) {
         if(i == recvdFrom || i == id)
