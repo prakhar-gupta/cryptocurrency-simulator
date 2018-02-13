@@ -6,6 +6,7 @@ using namespace std;
 struct Block {
 public:
     int id;
+    int creator;
     list<Transaction *> transList;
     Block *prevBlk;
     int generationTime;
