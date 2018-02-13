@@ -1,5 +1,6 @@
 #include <algorithm>
 #include <cstdio>
+#include <fstream>
 #include <iostream>
 #include <list>
 #include <map>
@@ -17,6 +18,7 @@ public:
     set<int> seenTransactions;
     map<int,float> seenBlocks;
     Block *longestChainLeaf;
+    ofstream outfile;
 
     //Check in own longest block chain if transaction is valid
     //TODO
@@ -59,6 +61,7 @@ public:
     }
 
     void updateBlock(Block *tmpBlk) {
+        tmpBlk->creator = id;
         tmpBlk->prevBlk = longestChainLeaf;
         tmpBlk->transactions = longestChainLeaf->transactions;
         tmpBlk->balances = longestChainLeaf->balances;
@@ -80,11 +83,53 @@ public:
         tmpBlk->balances[id] += 50;
         tmpBlk->len = longestChainLeaf->len + 1;
 
-        longestChainLeaf = tmpBlk;
         longestChainLeaf->child.push_back(tmpBlk);
+        longestChainLeaf = tmpBlk;
         for (int i=0;i<5;i++) {
             cout << "_" << tmpBlk->balances[i];
         }
         cout << endl;
+    }
+
+    void traverseTree(Block *blk, string prev, bool remPipe) {
+        string prev2 = prev;
+        replace(prev2.begin(), prev2.end(), '-', ' ');
+        outfile << prev2 << endl;
+        outfile << prev << blk->id << " (" << blk->creator << ", " << seenBlocks[blk->id] << ")";
+        list<Transaction *>::iterator it1 = blk->transList.begin();
+        while (it1 != blk->transList.end()) {
+            outfile << " #" << (*it1)->id;
+            it1++;
+        }
+        outfile << endl;
+        if (remPipe) {
+            prev = prev.substr(0, prev.size() - 5) + "     ";
+        }
+        else {
+            replace(prev.begin(), prev.end(), '-', ' ');
+        }
+        string prev1 = prev + "|----";
+        if (blk->child.size() == 0)
+            outfile << prev << endl;
+        list<Block *>::iterator it = blk->child.begin(), it2;
+        while (it != blk->child.end()) {
+            it2 = it;
+            it ++;
+            if (id > 0 && !hasSeenBlockNotSee((*it2)->id))
+                continue;
+            if (it == blk->child.end())
+                traverseTree(*it2, prev1, true);
+            else
+                traverseTree(*it2, prev1, false);
+        }
+    }
+
+    void print(Block *genesis) {
+        char filename[] = "out00.txt";
+        filename[3] = 48 + id/10;
+        filename[4] = 48 + id%10;
+        outfile.open(filename);
+        traverseTree(genesis, "", false);
+        outfile.close();
     }
 };
