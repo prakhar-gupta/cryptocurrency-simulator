@@ -71,7 +71,7 @@ void connectNode(int i) {
     for (int j=0; j<i; j++)
         isConnected[i][j] = isConnected[j][i] = 0;
 
-    int count = exponential(10.0/n);
+    int count = iRand(0, n/2.5);//exponential(10.0/n);
     count = max(1, min(i, count));
     while (count) {
         int j = iRand(0,i);
@@ -283,7 +283,7 @@ void startSimulation() {
     while(!timer.empty()) {
         const TimeInterrupt *ti = &(timer.top());
         currentTime = ti->time;
-        if (currentTime > 1 / bMean) {
+        if (currentTime > 100000) {
             break;
         }
         int from, to;
