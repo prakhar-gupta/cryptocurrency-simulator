@@ -106,7 +106,7 @@ void setupConnections() {
 void markSlowNodes() {
     cout << "Slow Nodes:" << endl;
     int count = (int) round(z * n / 100);
-    for (int i=0; i < n; i++) {
+    for (int i=0; i < count; i++) {
         int val;
         do {
             val = iRand(0,n);
