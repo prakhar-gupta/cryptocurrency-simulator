@@ -104,6 +104,7 @@ void setupConnections() {
 }
 
 void markSlowNodes() {
+    cout << "Slow Nodes:" << endl;
     int count = (int) round(z * n / 100);
     for (int i=0; i < n; i++) {
         int val;
@@ -111,7 +112,9 @@ void markSlowNodes() {
             val = iRand(0,n);
         } while (nodes[val].isNodeSlow);
         nodes[val].isNodeSlow = true;
+        cout << val << endl;
     }
+    cout << endl;
 }
 
 void initNodes() {
@@ -326,6 +329,7 @@ void printBlocks() {
 int main(int argc, char* argv[]) {
     srand (time(NULL));
     n = 5;
+    z = 0;
     tMean = 0.0001;
     bMean = 0.00001;
     if(argc > 1)
@@ -333,9 +337,9 @@ int main(int argc, char* argv[]) {
     if(argc > 2)
         z = atof(argv[2]);
     if(argc > 3)
-        tMean = atof(argv[3]);
+        tMean = 1.0 / atof(argv[3]);
     if(argc > 4)
-        bMean = atof(argv[4]);
+        bMean = 1.0 / atof(argv[4]);
     cout << "No. of nodes: " << n << endl;
 
     init();

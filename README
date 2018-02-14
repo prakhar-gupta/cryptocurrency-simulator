@@ -1,0 +1,9 @@
+COMPILATION
+-----------
+sh compile.sh
+
+
+
+RUNNING
+-----------
+./simulator <n> <z> <mean-transaction-creation-time> <mean-block-creation-time>

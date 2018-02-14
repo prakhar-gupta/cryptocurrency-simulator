@@ -5,7 +5,7 @@
 - ???(Mention in report) Why is the bottleneck link speed considered? [1]
 - (Mention in report) Why does d ij mean depend on c ij ? [1]
 - Correct loop-less transaction forwarding. [1]
-- ???Correct implementation of T k , with explanation for the choice of a particular mean. [2]
+- ***Correct implementation of T k , with explanation for the choice of a particular mean. [2]
 - ???Proper resolution of forks, to prune the per node block tree to a chain. [5]
 - Marks: Properly maintained tree file for each node. [2]
 - ***Proper study with a particular visualization tool using different parameters. [3]
