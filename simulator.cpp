@@ -57,12 +57,10 @@ bool areNodesConnected(int i, int j) {
 }
 
 //The initial balance that node i has
-//TODO
 float getNodeInitBalance(int i) {
     return INIT_BALANCE;
 }
 
-// TODO
 float getMeanGenerationTime(int i) {
     return bMean;
 }
@@ -71,7 +69,7 @@ void connectNode(int i) {
     for (int j=0; j<i; j++)
         isConnected[i][j] = isConnected[j][i] = 0;
 
-    int count = iRand(0, n/2.5);//exponential(10.0/n);
+    int count = iRand(0, n/2.5);
     count = max(1, min(i, count));
     while (count) {
         int j = iRand(0,i);
@@ -92,14 +90,6 @@ void setupConnections() {
     }
     for(int i=1;i<n;i++) {
         connectNode(i);
-        /*
-        for(int j=i+1;j<n;j++) {
-            isConnected[i][j] = isConnected[j][i] = areNodesConnected(i, j);    //Helper function that uses underlying dist
-            if(isConnected[i][j] == 1) {
-                speedOfLightDelay[i][j] = speedOfLightDelay[j][i] = rhoLatency();
-            }
-        }
-        */
     }
 }
 
@@ -217,24 +207,11 @@ void newBlockHandle(int to, int from, Block *blk) {
         nodes[to].updateBlock(tmpBlock);
         if (tmpBlock->id == -1) {
             lastBlkId --;
-            cout << "No Transactions to add; Not creating block" << endl;
+            // cout << "No Transactions to add; Not creating block" << endl;
             return;
         }
-        cout << "Block Creation Successful" << endl;
+        // cout << "Block Creation Successful" << endl;
     }
-    /*
-    if (nodes[to].longestChainLeaf->len == 1 || nodes[to].hasSeenBlockNotSee(nodes[to].longestChainLeaf->prevBlk->id)) {
-        if (nodes[to].longestChainLeaf->len < tmpBlock->len)
-            nodes[to].longestChainLeaf = tmpBlock;
-        list<Block *>::iterator it = nodes[to].longestChainLeaf->child.begin();
-        while (it != nodes[to].longestChainLeaf->child.end()) {
-            cout << nodes[to]
-            if (nodes[to].longestChainLeaf->len < (*it)->len)
-                nodes[to].longestChainLeaf = *it;
-            it ++;
-        }
-    }
-    */
     if (nodes[to].hasSeenBlockNotSee(tmpBlock->prevBlk->id)) {
         if (nodes[to].longestChainLeaf->len < tmpBlock->len)
             nodes[to].longestChainLeaf = tmpBlock;
@@ -249,7 +226,6 @@ void newBlockHandle(int to, int from, Block *blk) {
 }
 
 void generateTransaction(int from) {
-    // Transaction *t = (Transaction *) malloc(sizeof(Transaction));
     Transaction *t = new Transaction();
     t->id = ++latestTransactionID;
     t->from = from;
@@ -332,6 +308,10 @@ int main(int argc, char* argv[]) {
     z = 0;
     tMean = 0.0001;
     bMean = 0.00001;
+    if (argc > 1 && argv[1][0] == 'h') {
+        cout << "./simulator <n> <z> <mean-transaction-creation-time> <mean-block-creation-time>" << endl;
+        exit(0);
+    }
     if(argc > 1)
         n = atoi(argv[1]);
     if(argc > 2)

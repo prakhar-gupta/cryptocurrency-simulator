@@ -3,7 +3,22 @@ COMPILATION
 sh compile.sh
 
 
-
 RUNNING
 -----------
-./simulator <n> <z> <mean-transaction-creation-time> <mean-block-creation-time>
+- ./simulator <n> <z> <mean-transaction-creation-time> <mean-block-creation-time>
+
+- for help: ./simulator help
+
+
+OUTPUT
+-----------
+- The simulator generates n output files named as out<node-no.>.txt. These
+  files contains the blockchain tree as seen by the respective nodes.
+- The blocks in the tree have
+their siblings immediately below them and children connected to them to their
+immediate right. 
+- Each block has the following representation:
+    <block-id> (<creator-node-id>, <time-of-reception>) [#<transaction-id>]
+
+- The block-id 0 is for the genesis block.
+- The longest chain can be seen to be the one ending in the rightmost block.
