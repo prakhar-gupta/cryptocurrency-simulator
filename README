@@ -7,6 +7,18 @@ RUNNING
 -----------
 - ./simulator <n> <z> <mean-transaction-creation-time> <mean-block-creation-time>
 
+	where n = number of nodes,
+	z = percentage of slow nodes, and
+	time unit is in ms
+
+	If number of parameters passes are less than intended(4), the program will assume some default values for the remaining parameters.
+
+	Default Values
+	n : 5
+	z : 30 (%)
+	mean-transaction-creation-time : 10000
+	mean-block-creation-time : 100000
+
 - for help: ./simulator help
 
 
